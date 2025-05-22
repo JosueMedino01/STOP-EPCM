@@ -6,14 +6,9 @@
 int contador = 0;
 map<pair<int,int>, double> hashMap;
 
-double EvaluateTourProbability::evaluate(int i, int Pmin, vector<int> path, 
-    vector<double> probabilities, vector<int> prizes) 
+double EvaluateTourProbability::evaluate(int i, int Pmin, const vector<int> &path, 
+    const vector<double> &probabilities, const vector<int> &prizes) 
 {
-    for (int k= 0; k < i; k++)
-    {
-        cout << path[k] << ",";
-    }
-
     if (Pmin <= 0) 
     {
         return 1.0;
@@ -27,9 +22,10 @@ double EvaluateTourProbability::evaluate(int i, int Pmin, vector<int> path,
         return hashMap.find({i, Pmin})->second;
     }
 
-    double prob_i = (probabilities[i - 1] > 0) ? probabilities[i - 1] : 0; 
+    int node = path[i - 1];
+    double prob_i = (probabilities[node] > 0) ? probabilities[node] : 0; 
 
-    double prob = evaluate(i-1, Pmin - prizes[path[i - 1]], path, probabilities, prizes) * prob_i +  
+    double prob = evaluate(i-1, Pmin - prizes[node], path, probabilities, prizes) * prob_i +  
             evaluate(i-1, Pmin, path, probabilities, prizes) * (1 - prob_i);
 
     hashMap[{i, Pmin}] = prob;
