@@ -4,7 +4,7 @@
 #include "../utils/Structs.h"
 
 double GreedyAlgorithm::costBenefit (InstanceData data, int i, int j, double C) {
-    return data.prize[j] - C * data.cost[i][j];
+    return /* data.prize[j] - C *  */data.cost[i][j];
 }
 
 Customers GreedyAlgorithm::kNeighborRandomInsertion(InstanceData data, int K, double C) {
@@ -34,7 +34,7 @@ Customers GreedyAlgorithm::kNeighborRandomInsertion(InstanceData data, int K, do
 
         sort(candidateList.begin(), candidateList.end(), 
             [](const Candidate& a, const Candidate& b) {
-                return a.attraction > b.attraction; 
+                return a.attraction < b.attraction; 
             }
         );
         

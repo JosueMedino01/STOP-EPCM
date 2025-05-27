@@ -27,24 +27,23 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
     while (i < this-> MAX_NOT_IMPROVIMENT)
     {
         i++;
-
+        /* cout << "Iteracao: " << i << endl; */
         /* Pertubacao */
         Customers disturbed =  doubleBridge(data, bestSolution);
+        printData(disturbed.feasibleTour, disturbed.notVisited, "Perturbacao");
         
+        if(disturbed.feasibleTour.cost < 0) {
+            cout << "doubleBridge - Custo negativo encontrado, abortando..." << endl;
+            exit(1);
+        }
+
         /* Busca Local */
         this->localSearch(data, disturbed); 
 
         /* Criterio de Aceitação */
         if (
-            this->objcFunc(disturbed.feasibleTour.prize, disturbed.feasibleTour.cost) <
+            this->objcFunc(disturbed.feasibleTour.prize, disturbed.feasibleTour.cost) >
             this->objcFunc(bestSolution.feasibleTour.prize, bestSolution.feasibleTour.cost)
-           /*  && evaluateClass.evaluate(
-                disturbed.feasibleTour.path.size() - 1,
-                15000,
-                disturbed.feasibleTour.path,
-                data.probability,
-                data.prize
-            ) > 0.8 */
         ) {
             this->bestSolution = disturbed;
             cout << "HOUVE MELHORA NA ITERACAO "<< i <<endl;
@@ -52,12 +51,12 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
         }
         
     }
-
+    
     this->printData(bestSolution.feasibleTour, bestSolution.notVisited, "Solucao Final");
 }
 
 double IteratedLocalSearch::objcFunc(double sumPrize, double sumCost) {
-    return sumCost;
+    return sumPrize - this->C * sumCost;
 }
 
 /* Move um cliente de não visitado para o caminho viável */
@@ -79,6 +78,7 @@ bool IteratedLocalSearch::shiftOneZero(InstanceData &data, Customers &customers)
             int newPrize = customers.feasibleTour.prize + data.prize[addedNode];
 
             
+            
             if( newCost <= data.deadline && this->objcFunc(newPrize, newCost) > this->objcFunc(bestPrize, bestCost)) {
                 bestPositionIndex = i;
                 bestNotVisitedIndex = j;
@@ -86,6 +86,11 @@ bool IteratedLocalSearch::shiftOneZero(InstanceData &data, Customers &customers)
                 bestPrize = newPrize;
             }
         }
+    }
+
+    if(bestCost< 0) {
+        cout << "shiftOneZero - Custo negativo encontrado, abortando..." << endl;
+        exit(1);
     }
 
     if (bestNotVisitedIndex != -1 && bestPositionIndex != -1) {
@@ -122,9 +127,7 @@ bool IteratedLocalSearch::swapOneOne(InstanceData &data, Customers &customers) {
             double newCost = customers.feasibleTour.cost - dellEdges + newEdges;
             int newPrize = customers.feasibleTour.prize + data.prize[addedNode] - data.prize[deletedNode];
 
-            /* cout << "Troca de " << addedNode << " por " << deletedNode << " newOF " <<  this->objcFunc(newPrize, newCost) << " Curr of" <<  this->objcFunc(bestPrize, bestCost);
-            cout << " CUSTO : " << newCost<< endl ; */
-            if( newCost <= data.deadline && this->objcFunc(newPrize, newCost) > this->objcFunc(bestPrize, bestCost)) {
+            if( newCost <= data.deadline  && this->objcFunc(newPrize, newCost) > this->objcFunc(bestPrize, bestCost)) {
                 bestPositionIndex = i;
                 bestNotVisitedIndex = j;
                 bestCost = newCost;
@@ -132,6 +135,11 @@ bool IteratedLocalSearch::swapOneOne(InstanceData &data, Customers &customers) {
                /*  cout << "HOUVE MELHORA"<< endl; */
             }
         }
+    }
+
+    if(bestCost< 0) {
+        cout << "swapOneOne - Custo negativo encontrado, abortando..." << endl;
+        exit(1);
     }
 
     if (bestNotVisitedIndex != -1 && bestPositionIndex != -1) {
@@ -172,16 +180,18 @@ bool IteratedLocalSearch::reinsertion(InstanceData &data, Customers &customers) 
                 
                 double newCost = customers.feasibleTour.cost - dellEdges + newEdges;
 
-/*                 cout << "Remover o " << deletedNode << " e  add na pos. " << j << " novo custo: "<<  newCost << " custo atual: " << bestCost << endl;
- */                if( newCost <= data.deadline && (newCost <= bestCost)) {
+                if( /* newCost <= data.deadline &&  */ (newCost <= bestCost)) {
                     bestRemovedIndex = i;
                     bestInsertionIndex = j;
                     bestCost = newCost;
                     
-/*                     cout << "REINSERTION HOUVE MELHORA"<< endl;
- */                }
+                }
             }
         }
+    }
+    if(bestCost < 0) {
+        cout << "reinsertion - Custo negativo encontrado, abortando..." << endl;
+        exit(1);
     }
 
     if (bestRemovedIndex != -1 && bestInsertionIndex != -1) {
@@ -190,8 +200,6 @@ bool IteratedLocalSearch::reinsertion(InstanceData &data, Customers &customers) 
         customers.feasibleTour.path.erase(customers.feasibleTour.path.begin() + bestRemovedIndex);
 
         if (bestRemovedIndex < bestInsertionIndex) {
-            // Após remover bestRemovedIndex, os elementos após são deslocados para a esquerda.
-            // A posição de inserção original (bestInsertionIndex) agora é bestInsertionIndex - 1.
             customers.feasibleTour.path.insert(customers.feasibleTour.path.begin() + (bestInsertionIndex - 1), bestRemovedNode);
         } else {
             customers.feasibleTour.path.insert(customers.feasibleTour.path.begin() + bestInsertionIndex, bestRemovedNode);
@@ -224,6 +232,10 @@ bool IteratedLocalSearch::twoOpt(InstanceData &data, Customers &customers) {
         }
     }
 
+    if(bestCost < 0) {
+        cout << "twoOpt - Custo negativo encontrado, abortando..." << endl;
+        exit(1);
+    }
     
     if (bestIndexI != -1 && bestIndexJ != -1) {
         reverse(customers.feasibleTour.path.begin() + bestIndexI, customers.feasibleTour.path.begin() + bestIndexJ+ 1);
@@ -244,6 +256,7 @@ void  IteratedLocalSearch::localSearch(InstanceData &data, Customers &customers)
         switch(k) {
             case 1:
                 hasImprovement = this->shiftOneZero(data, customers);
+                
                 break;
             case 2:
                 hasImprovement = this->swapOneOne(data, customers);
@@ -263,11 +276,15 @@ void  IteratedLocalSearch::localSearch(InstanceData &data, Customers &customers)
 
 
 Customers IteratedLocalSearch::doubleBridge(InstanceData &data, Customers customers) {
+
+    int n_with_depot  = customers.feasibleTour.path.size() - 1;
+
+    if (n_with_depot < 8) return customers;
+
     customers.feasibleTour.path.pop_back(); 
     customers.feasibleTour.cost -= data.cost[customers.feasibleTour.path.back()][0];
     
     int n = customers.feasibleTour.path.size();
-    if (n < 8) return {customers.feasibleTour, customers.notVisited};
     
     int partSize = max(1, (n - 4) / 4);
     

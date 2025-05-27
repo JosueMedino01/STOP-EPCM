@@ -24,9 +24,20 @@ int main(int argc, char *argv[]) {
     IteratedLocalSearch ils(MAX_NOT_IMPROVIMENT, K, C, seed);
     ils.run(data, K, C);
 
-    cout << "Best solution: " << ils.bestSolution.feasibleTour.cost << endl;
-    cout << "Best solution prize: " << ils.bestSolution.feasibleTour.prize << endl;
-    printData(ils.bestSolution.feasibleTour, ils.bestSolution.notVisited);
+    /* EvaluateTourProbability evaluate;
+    double prob = evaluate.evaluate(
+        ils.bestSolution.feasibleTour.path.size() - 1, 
+        5, 
+        ils.bestSolution.feasibleTour.path, 
+        data.probability, 
+        data.prize
+    ); */
+
+    /* cout << "Probabilidade: " << prob << endl; */
+    cout << "Custo: " << ils.bestSolution.feasibleTour.cost << endl;
+    cout << "Premio: " << ils.bestSolution.feasibleTour.prize << endl;
+
+    
    
     /* vector<int> path = ils.bestSolution.feasibleTour.path;
     vector<double> probs = data.probability;

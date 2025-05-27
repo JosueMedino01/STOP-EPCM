@@ -22,7 +22,7 @@ class IteratedLocalSearch
         Customers doubleBridge(InstanceData &data, Customers customers);
     public:
         Customers bestSolution; 
-        IteratedLocalSearch(int MXI, int K, double C, int SEED);
+        IteratedLocalSearch(int MXI, int K, double C, int SEED/* , double alpha = 0.6 */);
         
         void run(InstanceData data, int K, double C);
        
