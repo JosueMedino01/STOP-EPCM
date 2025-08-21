@@ -8,9 +8,10 @@
 class EvaluateTourProbability
 {
 public:
-    double evaluate(int i, int Pmin, const vector<int> &path, const vector<double> &probabilities, const vector<int> &prizes);
+    double evaluate(int i, double Pmin, const vector<int> &path, const vector<double> &probabilities, const vector<double> &prizes);
 private:
 
 };
 
 #endif
+

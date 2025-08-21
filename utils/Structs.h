@@ -27,7 +27,7 @@ struct InstanceData {
     int size;
     int deadline;
     vector<double> probability;
-    vector<int> prize;
+    vector<double> prize;
     vector<vector<double>> cost;
 };
 #endif

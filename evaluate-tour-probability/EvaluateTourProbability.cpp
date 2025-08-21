@@ -3,11 +3,10 @@
 #include <iostream>
 #include <map>
 
-int contador = 0;
 map<pair<int,int>, double> hashMap;
 
-double EvaluateTourProbability::evaluate(int i, int Pmin, const vector<int> &path, 
-    const vector<double> &probabilities, const vector<int> &prizes) 
+double EvaluateTourProbability::evaluate(int i, double Pmin, const vector<int> &path, 
+    const vector<double> &probabilities, const vector<double> &prizes) 
 {
     if (Pmin <= 0) 
     {

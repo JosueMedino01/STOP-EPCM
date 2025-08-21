@@ -5,6 +5,9 @@
 #include "../greedy-algorithm/GreedyAlgorithm.h"
 #include "../evaluate-tour-probability/EvaluateTourProbability.h"
 
+double alfa = 0.8; // Valor padrão para alpha, pode ser ajustado conforme necessário
+double Pmin = 10000;
+
 IteratedLocalSearch::IteratedLocalSearch(int MXI, int K, double C, int SEED)
 {
     this->MAX_NOT_IMPROVIMENT = MXI;
@@ -12,13 +15,14 @@ IteratedLocalSearch::IteratedLocalSearch(int MXI, int K, double C, int SEED)
     this->C = C;
     this->SEED = SEED;
     srand(SEED); 
+    this->evaluateTourProb = EvaluateTourProbability();
 }
 
 
 void IteratedLocalSearch::run(InstanceData data, int K, double C) 
 {
     /* Melhor Solução - Solução Inicial*/
-    GreedyAlgorithm greedy; EvaluateTourProbability evaluateClass;
+    GreedyAlgorithm greedy; 
     this->bestSolution = greedy.kNeighborRandomInsertion(data, K, C); 
     this->printData(bestSolution.feasibleTour, bestSolution.notVisited, "SOLUCAO INICIAL");
     this->localSearch(data, bestSolution); 
@@ -40,10 +44,26 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
         /* Busca Local */
         this->localSearch(data, disturbed); 
 
+        double probPertubed = this->evaluateTourProb.evaluate(
+            disturbed.feasibleTour.path.size() - 1,
+            Pmin,
+            disturbed.feasibleTour.path,
+            data.probability,
+            data.prize
+        );
+
+        double probBest = this->evaluateTourProb.evaluate(
+            bestSolution.feasibleTour.path.size() - 1,
+            Pmin,
+            bestSolution.feasibleTour.path,
+            data.probability,
+            data.prize
+        );
+
         /* Criterio de Aceitação */
         if (
-            this->objcFunc(disturbed.feasibleTour.prize, disturbed.feasibleTour.cost) >
-            this->objcFunc(bestSolution.feasibleTour.prize, bestSolution.feasibleTour.cost)
+            this->objcFunc(disturbed.feasibleTour.prize, disturbed.feasibleTour.cost, probPertubed) <
+            this->objcFunc(bestSolution.feasibleTour.prize, bestSolution.feasibleTour.cost, probBest)
         ) {
             this->bestSolution = disturbed;
             cout << "HOUVE MELHORA NA ITERACAO "<< i <<endl;
@@ -55,8 +75,9 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
     this->printData(bestSolution.feasibleTour, bestSolution.notVisited, "Solucao Final");
 }
 
-double IteratedLocalSearch::objcFunc(double sumPrize, double sumCost) {
-    return sumPrize - this->C * sumCost;
+double IteratedLocalSearch::objcFunc(double sumPrize, double sumCost, double prob) {
+    double delta = max(0.0, alfa - prob); // Penalidade só se prob < alfa
+    return sumCost * (1 + delta * 10);
 }
 
 /* Move um cliente de não visitado para o caminho viável */
@@ -75,15 +96,39 @@ bool IteratedLocalSearch::shiftOneZero(InstanceData &data, Customers &customers)
                 + data.cost[addedNode][customers.feasibleTour.path[i]]; 
             
             double newCost = customers.feasibleTour.cost - dellEdges + newEdges;
-            int newPrize = customers.feasibleTour.prize + data.prize[addedNode];
+            double newPrize = customers.feasibleTour.prize + data.prize[addedNode];
 
+            /* Caminho temporário */
+            vector<int> tempPath = customers.feasibleTour.path;
+            tempPath.insert(tempPath.begin() + i, addedNode);
+
+            double prob = this->evaluateTourProb.evaluate(
+                tempPath.size() - 1,
+                Pmin,
+                tempPath,
+                data.probability,
+                data.prize
+            );
+
+
+            /* cout << "Probabilidade: " << prob << endl; */
             
-            
-            if( newCost <= data.deadline && this->objcFunc(newPrize, newCost) > this->objcFunc(bestPrize, bestCost)) {
+            double probBest = this->evaluateTourProb.evaluate(
+                customers.feasibleTour.path.size() - 1,
+                Pmin,
+                customers.feasibleTour.path,
+                data.probability,
+                data.prize
+            );
+
+            double a = this->objcFunc(newPrize, newCost, prob);
+            double b = this->objcFunc(bestPrize, bestCost, probBest);
+            if( newCost <= data.deadline  && a < b ) {
                 bestPositionIndex = i;
                 bestNotVisitedIndex = j;
                 bestCost = newCost;
                 bestPrize = newPrize;
+                cout << "HOUVE MELHORA - shiftOneZero " << a << " < "<< b << endl;
             }
         }
     }
@@ -94,9 +139,9 @@ bool IteratedLocalSearch::shiftOneZero(InstanceData &data, Customers &customers)
     }
 
     if (bestNotVisitedIndex != -1 && bestPositionIndex != -1) {
-        int addeNode = customers.notVisited[bestNotVisitedIndex];
+        int addedNode = customers.notVisited[bestNotVisitedIndex];
         customers.notVisited.erase(customers.notVisited.begin() + bestNotVisitedIndex);
-        customers.feasibleTour.path.insert(customers.feasibleTour.path.begin() + bestPositionIndex, addeNode);
+        customers.feasibleTour.path.insert(customers.feasibleTour.path.begin() + bestPositionIndex, addedNode);
 
         customers.feasibleTour.cost = bestCost;
         customers.feasibleTour.prize = bestPrize;
@@ -125,14 +170,34 @@ bool IteratedLocalSearch::swapOneOne(InstanceData &data, Customers &customers) {
                 + data.cost[addedNode][customers.feasibleTour.path[i + 1]]; 
             
             double newCost = customers.feasibleTour.cost - dellEdges + newEdges;
-            int newPrize = customers.feasibleTour.prize + data.prize[addedNode] - data.prize[deletedNode];
+            double newPrize = customers.feasibleTour.prize + data.prize[addedNode] - data.prize[deletedNode];
 
-            if( newCost <= data.deadline  && this->objcFunc(newPrize, newCost) > this->objcFunc(bestPrize, bestCost)) {
+            /* Caminho temporário */
+            vector<int> tempPath = customers.feasibleTour.path; 
+            tempPath[i] = addedNode;
+
+            double prob = this->evaluateTourProb.evaluate(
+                tempPath.size() - 1,
+                Pmin,
+                tempPath,
+                data.probability,
+                data.prize
+            );
+
+            double probBest = this->evaluateTourProb.evaluate(
+                customers.feasibleTour.path.size() - 1,
+                Pmin,
+                customers.feasibleTour.path,
+                data.probability,
+                data.prize
+            );
+
+
+            if( newCost <= data.deadline  && this->objcFunc(newPrize, newCost, prob) < this->objcFunc(bestPrize, bestCost, probBest)) {
                 bestPositionIndex = i;
                 bestNotVisitedIndex = j;
                 bestCost = newCost;
                 bestPrize = newPrize;
-               /*  cout << "HOUVE MELHORA"<< endl; */
             }
         }
     }
@@ -275,8 +340,8 @@ void  IteratedLocalSearch::localSearch(InstanceData &data, Customers &customers)
 /* https://iopscience.iop.org/article/10.1088/1742-6596/1320/1/012025/pdf */
 
 
-Customers IteratedLocalSearch::doubleBridge(InstanceData &data, Customers customers) {
-
+Customers IteratedLocalSearch::doubleBridge(InstanceData &data, Customers &customersInput) {
+    Customers customers = customersInput;
     int n_with_depot  = customers.feasibleTour.path.size() - 1;
 
     if (n_with_depot < 8) return customers;
@@ -350,8 +415,7 @@ void IteratedLocalSearch::printData(Tour tour, vector<int> notVisited, string so
 
     outFile << "\nCost: " << tour.cost;
     outFile << "\nPrize: " << tour.prize;
-    outFile << "\n Funcao Objetivo: " << objcFunc(tour.prize, tour.cost);
-    
+ 
 
     outFile.close(); // Fecha o arquivo corretamente
 }
