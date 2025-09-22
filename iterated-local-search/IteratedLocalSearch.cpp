@@ -21,16 +21,16 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
 {
     /* Melhor Solução - Solução Inicial*/
     GreedyAlgorithm greedy; 
-    this->bestSolution = greedy.kNeighborRandomInsertion(data, K, C); this->printData(bestSolution.feasibleTour, bestSolution.notVisited, "SOLUCAO INICIAL");
+    this->bestSolution = greedy.kNeighborRandomInsertion(data, K, C); this->printData(bestSolution.feasibleTour, bestSolution.notVisited, "SOLUCAO INICIAL", data);
     this->localSearch(data, bestSolution); 
 
     int i = 0;
     while (i < this-> MAX_NOT_IMPROVIMENT)
     {
         i++;
-        /* cout << "Iteracao: " << i << endl; */
+        cout << "Iteracao: " << i << endl; 
         /* Pertubacao */
-        Customers disturbed =  doubleBridge(data, bestSolution); printData(disturbed.feasibleTour, disturbed.notVisited, "Perturbacao");
+        Customers disturbed =  doubleBridge(data, bestSolution); // printData(disturbed.feasibleTour, disturbed.notVisited, "Perturbacao", data);
         
         if(disturbed.feasibleTour.cost < 0) {
             cout << "doubleBridge - Custo negativo encontrado, abortando..." << endl;
@@ -48,8 +48,8 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
             data.prize
         );
 
-        cout << "Probabilidade: " << prob << endl;
-        cout << "Min Prob: " << MIN_PROB << endl;
+        // cout << "Probabilidade: " << prob << endl;
+        // cout << "Min Prob: " << MIN_PROB << endl;
 
         /* Criterio de Aceitação */
         if (
@@ -63,7 +63,7 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
         
     }
     
-    this->printData(bestSolution.feasibleTour, bestSolution.notVisited, "Solucao Final");
+    this->printData(bestSolution.feasibleTour, bestSolution.notVisited, "Solucao Final", data);
 }
 
 double IteratedLocalSearch::objcFunc(double sumCost) {
@@ -96,7 +96,7 @@ bool IteratedLocalSearch::shiftOneZero(InstanceData &data, Customers &customers)
                 bestNotVisitedIndex = j;
                 bestCost = newCost;
                 bestPrize = newPrize;
-                cout << "HOUVE MELHORA - shiftOneZero " << a << " < "<< b << endl;
+                //cout << "HOUVE MELHORA - shiftOneZero " << a << " < "<< b << endl;
             }
         }
     }
@@ -342,7 +342,7 @@ Customers IteratedLocalSearch::doubleBridge(InstanceData &data, Customers &custo
     return {customers.feasibleTour, customers.notVisited};
 }
 
-void IteratedLocalSearch::printData(Tour tour, vector<int> notVisited, string source) {
+void IteratedLocalSearch::printData(Tour tour, vector<int> notVisited, string source, InstanceData &data) {
     ofstream outFile("solution_log.txt", ios::app); // Abre o arquivo em modo append
 
     if (!outFile) {
@@ -362,7 +362,17 @@ void IteratedLocalSearch::printData(Tour tour, vector<int> notVisited, string so
 
     outFile << "\nCost: " << tour.cost;
     outFile << "\nPrize: " << tour.prize;
- 
+
+    // Adicionando informações de probabilidade
+    double prob = this->evaluateTourProb.evaluate(
+        tour.path.size() - 1, 
+        MIN_PRIZE, 
+        tour.path, 
+        data.probability, 
+        data.prize
+    );
+    outFile << "\nProbabilidade: " << prob << endl;
+    outFile << "Min Prob: " << MIN_PROB << endl;
 
     outFile.close(); // Fecha o arquivo corretamente
 }

@@ -12,7 +12,7 @@ class IteratedLocalSearch
         int MAX_NOT_IMPROVIMENT, K, SEED; 
         double MIN_PRIZE, MIN_PROB;
         double objcFunc(double sumCost);
-        void printData(Tour tour, vector<int> notVisited, string source);
+        void printData(Tour tour, vector<int> notVisited, string source, InstanceData &data);
         EvaluateTourProbability evaluateTourProb;
 
         bool shiftOneZero(InstanceData &data, Customers &customers);
