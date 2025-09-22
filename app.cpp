@@ -10,19 +10,19 @@
 void printData(Tour tour, vector<int> notVisited);
 
 void readArguments(int argc, char *argv[], string &filename, int &seed, 
-    int &K, double &C, int &TABU_TENURE, int &MAX_ITER_TABU, int &MAX_NOT_IMPROVIMENT
+    int &K, double &MIN_PRIZE, double &MIN_PROB, int &TABU_TENURE, int &MAX_ITER_TABU, int &MAX_NOT_IMPROVIMENT
 );
 
 int main(int argc, char *argv[]) {
     string filename = "";
     int seed, K, TABU_TENURE, MAX_ITER_TABU, MAX_NOT_IMPROVIMENT;
-    double C;
+    double MIN_PRIZE, MIN_PROB;
 
-    readArguments(argc, argv, filename, seed, K, C, TABU_TENURE, MAX_ITER_TABU, MAX_NOT_IMPROVIMENT);
+    readArguments(argc, argv, filename, seed, K, MIN_PRIZE, MIN_PROB, TABU_TENURE, MAX_ITER_TABU, MAX_NOT_IMPROVIMENT);
 
     InstanceData data = readFile(filename); 
-    IteratedLocalSearch ils(MAX_NOT_IMPROVIMENT, K, C, seed);
-    ils.run(data, K, C);
+    IteratedLocalSearch ils(MAX_NOT_IMPROVIMENT, K, MIN_PRIZE, MIN_PROB, seed);
+    ils.run(data, K, MIN_PRIZE);
 
     /* EvaluateTourProbability evaluate;
     double prob = evaluate.evaluate(
@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
 
 
 void readArguments(int argc, char *argv[], string &filename, int &seed, 
-    int &K, double &C, int &TABU_TENURE, int &MAX_ITER_TABU, int &MAX_NOT_IMPROVIMENT) 
+    int &K, double &MIN_PRIZE, double &MIN_PROB, int &TABU_TENURE, int &MAX_ITER_TABU, int &MAX_NOT_IMPROVIMENT) 
 {
     for (int i = 0; i < argc; i++)
     {
@@ -85,9 +85,13 @@ void readArguments(int argc, char *argv[], string &filename, int &seed,
         {
             filename = argv[i + 1];
         }
-        else if (!strcmp(argv[i], "-C"))
+        else if (!strcmp(argv[i], "-MIN_PRIZE"))
         {
-            C = atof(argv[i + 1]);
+            MIN_PRIZE = atof(argv[i + 1]);
+        }
+        else if (!strcmp(argv[i], "-MIN_PROB"))
+        {
+            MIN_PROB = atof(argv[i + 1]);
         }
         else if (!strcmp(argv[i], "-K"))
         {
