@@ -9,7 +9,7 @@
 class IteratedLocalSearch
 {
     private:
-        int MAX_NOT_IMPROVIMENT, K, SEED; 
+        int MAX_NOT_IMPROVIMENT, K, SEED, TIME_LIMIT; 
         double MIN_PRIZE, MIN_PROB;
         double objcFunc(double sumCost);
         void printData(Tour tour, vector<int> notVisited, string source, InstanceData &data);
@@ -19,12 +19,13 @@ class IteratedLocalSearch
         bool swapOneOne(InstanceData &data, Customers &customers);
         bool reinsertion(InstanceData &data, Customers &customers);
         bool twoOpt(InstanceData &data, Customers &customers);
-        
+        bool removeVisitedIfSafe(InstanceData &data, Customers &customers);
+
         void localSearch(InstanceData &data, Customers &customers);
         Customers doubleBridge(InstanceData &data, Customers &customers);
     public:
         Customers bestSolution; 
-        IteratedLocalSearch(int MXI, int K, double MIN_PRIZE, double MIN_PROB, int SEED/* , double alpha = 0.6 */);
+        IteratedLocalSearch(int MXI, int K, double MIN_PRIZE, double MIN_PROB, int SEED, int TIME_LIMIT);
         
         void run(InstanceData data, int K, double C);
 };

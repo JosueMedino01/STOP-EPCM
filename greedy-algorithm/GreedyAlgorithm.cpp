@@ -2,23 +2,33 @@
 #include <iostream>
 #include <algorithm>
 #include "../utils/Structs.h"
+#include "../evaluate-tour-probability/EvaluateTourProbability.h"
 
 double GreedyAlgorithm::costBenefit (InstanceData data, int i, int j, double C) {
-    return /* data.prize[j] - C *  */data.cost[i][j];
+    return data.probability[j];
 }
 
-Customers GreedyAlgorithm::kNeighborRandomInsertion(InstanceData data, int K, double C) {
+Customers GreedyAlgorithm::kNeighborRandomInsertion(InstanceData data, int K, double C, double minPrize, double minProb) {
     int n = data.size;
 
+    EvaluateTourProbability evaluateTourProb = EvaluateTourProbability();
+    Tour feasibleTour; feasibleTour.path.push_back(0); feasibleTour.prize = 0;
+    vector<bool> visited(n, false); visited[0] = true;
 
-    Tour feasibleTour; 
-    feasibleTour.path.push_back(0);
-    
-    vector<bool> visited(n, false);
-    visited[0] = true;
-
-    while (feasibleTour.path.size() < n &&(feasibleTour.cost + data.cost[feasibleTour.path.back()][0] <= data.deadline)) 
+    while (feasibleTour.path.size() < n)
     {
+        double prob = evaluateTourProb.evaluate(
+            feasibleTour.path.size(), 
+            minPrize, 
+            feasibleTour.path, 
+            data.probability, 
+            data.prize
+        );
+
+        //if( prob >= minProb) {
+        //    break;
+        //}
+        
         int last = feasibleTour.path.back();  
         vector<Candidate> candidateList;  
 
@@ -34,7 +44,7 @@ Customers GreedyAlgorithm::kNeighborRandomInsertion(InstanceData data, int K, do
 
         sort(candidateList.begin(), candidateList.end(), 
             [](const Candidate& a, const Candidate& b) {
-                return a.attraction < b.attraction; 
+                return a.attraction > b.attraction; 
             }
         );
         
@@ -44,9 +54,6 @@ Customers GreedyAlgorithm::kNeighborRandomInsertion(InstanceData data, int K, do
             int randomNumber = rand() % k;
             int nextCustormer = candidateList[randomNumber].id;
 
-            if (feasibleTour.cost + data.cost[last][nextCustormer] + data.cost[nextCustormer][0] > data.deadline) {
-                break; // Impede que o novo nó ultrapasse o deadline
-            }
 
             feasibleTour.path.push_back(nextCustormer);
             feasibleTour.cost += data.cost[last][nextCustormer];
@@ -56,14 +63,6 @@ Customers GreedyAlgorithm::kNeighborRandomInsertion(InstanceData data, int K, do
         };
     }
 
-    if(feasibleTour.cost > data.deadline) {
-        int removed = feasibleTour.path.back();
-        feasibleTour.path.pop_back();
-        feasibleTour.cost -= data.cost[feasibleTour.path.back()][removed];
-        feasibleTour.prize -= data.prize[removed];
-
-        visited[removed] = false;
-    }
 
     feasibleTour.cost += data.cost[feasibleTour.path.back()][0];
     feasibleTour.path.push_back(0);

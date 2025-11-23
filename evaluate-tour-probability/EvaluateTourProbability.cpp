@@ -3,7 +3,9 @@
 #include <iostream>
 #include <map>
 
-map<pair<int,int>, double> hashMap;
+EvaluateTourProbability::EvaluateTourProbability() {
+    this->hashMap = map<pair<int,int>, double>();
+}
 
 double EvaluateTourProbability::evaluate(int i, double Pmin, const vector<int> &path, 
     const vector<double> &probabilities, const vector<double> &prizes) 

@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
     readArguments(argc, argv, filename, seed, K, MIN_PRIZE, MIN_PROB, TABU_TENURE, MAX_ITER_TABU, MAX_NOT_IMPROVIMENT);
 
     InstanceData data = readFile(filename); 
-    IteratedLocalSearch ils(MAX_NOT_IMPROVIMENT, K, MIN_PRIZE, MIN_PROB, seed);
+    IteratedLocalSearch ils(MAX_NOT_IMPROVIMENT, K, MIN_PRIZE, MIN_PROB, seed, 180);
     ils.run(data, K, MIN_PRIZE);
 
     /* EvaluateTourProbability evaluate;

@@ -2,16 +2,18 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <chrono>
 #include "../greedy-algorithm/GreedyAlgorithm.h"
 #include "../evaluate-tour-probability/EvaluateTourProbability.h"
 
-IteratedLocalSearch::IteratedLocalSearch(int MXI, int K, double MIN_PRIZE, double MIN_PROB, int SEED)
+IteratedLocalSearch::IteratedLocalSearch(int MXI, int K, double MIN_PRIZE, double MIN_PROB, int SEED, int TIME_LIMIT)
 {
     this->MAX_NOT_IMPROVIMENT = MXI;
     this->K = K;
     this->MIN_PRIZE = MIN_PRIZE;
     this->MIN_PROB = MIN_PROB;
     this->SEED = SEED;
+    this->TIME_LIMIT = TIME_LIMIT;
     srand(SEED); 
     this->evaluateTourProb = EvaluateTourProbability();
 }
@@ -21,16 +23,17 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
 {
     /* Melhor Solução - Solução Inicial*/
     GreedyAlgorithm greedy; 
-    this->bestSolution = greedy.kNeighborRandomInsertion(data, K, C); this->printData(bestSolution.feasibleTour, bestSolution.notVisited, "SOLUCAO INICIAL", data);
+    this->bestSolution = greedy.kNeighborRandomInsertion(data, K, C, this->MIN_PRIZE, this->MIN_PROB); this->printData(bestSolution.feasibleTour, bestSolution.notVisited, "SOLUCAO INICIAL", data);
     this->localSearch(data, bestSolution); 
 
+    auto start = std::chrono::steady_clock::now();
     int i = 0;
-    while (i < this-> MAX_NOT_IMPROVIMENT)
+    while (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start).count() < TIME_LIMIT)
     {
         i++;
-        cout << "Iteracao: " << i << endl; 
+        // out << "Iteracao: " << i << endl; 
         /* Pertubacao */
-        Customers disturbed =  doubleBridge(data, bestSolution); // printData(disturbed.feasibleTour, disturbed.notVisited, "Perturbacao", data);
+        Customers disturbed =  doubleBridge(data, bestSolution);  printData(disturbed.feasibleTour, disturbed.notVisited, "Perturbacao", data);
         
         if(disturbed.feasibleTour.cost < 0) {
             cout << "doubleBridge - Custo negativo encontrado, abortando..." << endl;
@@ -38,7 +41,8 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
         }
 
         /* Busca Local */
-        this->localSearch(data, disturbed); 
+        this->localSearch(data, disturbed);  printData(disturbed.feasibleTour, disturbed.notVisited, "Local search", data);
+        
 
         double prob = this->evaluateTourProb.evaluate(
             disturbed.feasibleTour.path.size() - 1, 
@@ -48,18 +52,25 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
             data.prize
         );
 
+        double bestProb = this->evaluateTourProb.evaluate(
+            this->bestSolution.feasibleTour.path.size() - 1, 
+            MIN_PRIZE, 
+            this->bestSolution.feasibleTour.path, 
+            data.probability, 
+            data.prize
+        );
+
         // cout << "Probabilidade: " << prob << endl;
         // cout << "Min Prob: " << MIN_PROB << endl;
 
         /* Criterio de Aceitação */
-        if (
-            this->objcFunc(disturbed.feasibleTour.cost) < this->objcFunc(bestSolution.feasibleTour.cost)
-            && prob >= MIN_PROB
-        ) {
+        if ( prob > MIN_PROB && this->objcFunc(disturbed.feasibleTour.cost) < this->objcFunc(bestSolution.feasibleTour.cost)) {
             this->bestSolution = disturbed;
             cout << "HOUVE MELHORA NA ITERACAO "<< i <<endl;
             i = 0;
         }
+
+
         
     }
     
@@ -68,6 +79,91 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
 
 double IteratedLocalSearch::objcFunc(double sumCost) {
     return sumCost;
+}
+
+// remove um cliente visitado do tour se a probabilidade mínima ainda for satisfeita
+bool IteratedLocalSearch::removeVisitedIfSafe(InstanceData &data, Customers &customers) {
+    // Não tente remover se o tour é muito pequeno (apenas origem e destino)
+    if (customers.feasibleTour.path.size() <= 3) return false;
+
+    int n = customers.feasibleTour.path.size();
+    double bestCost = customers.feasibleTour.cost;
+    int bestRemoveIndex = -1;
+    double bestNewCost = bestCost;
+    double bestNewPrize = customers.feasibleTour.prize;
+
+    // Testa remover cada vértice interior (i = 1 .. n-2)
+    for (int i = 1; i < n - 1; ++i) {
+        int removedNode = customers.feasibleTour.path[i];
+
+        // Calculo custo se remover o nó i
+        double removedEdges = data.cost[customers.feasibleTour.path[i - 1]][removedNode]
+                            + data.cost[removedNode][customers.feasibleTour.path[i + 1]];
+        double addedEdge   = data.cost[customers.feasibleTour.path[i - 1]][customers.feasibleTour.path[i + 1]];
+        double newCost = customers.feasibleTour.cost - removedEdges + addedEdge;
+
+        // Novo prêmio se remover esse cliente
+        double newPrize = customers.feasibleTour.prize - data.prize[removedNode];
+
+        if (newCost >= bestNewCost) {
+            // não melhora custo global, ignora
+            continue;
+        }
+
+        if (newCost < 0) {
+            std::cout << "removeVisitedIfSafe - Custo negativo encontrado, abortando..." << std::endl;
+            exit(1);
+        }
+
+        // Monta o novo path (removido o nó i) para avaliar probabilidade
+        std::vector<int> newPath;
+        newPath.reserve(n - 1);
+        for (int k = 0; k < n; ++k) {
+            if (k == i) continue;
+            newPath.push_back(customers.feasibleTour.path[k]);
+        }
+
+        // A função evaluate espera path.size() - 1 como primeiro parâmetro (nó de retorno ao depósito)
+        double prob = this->evaluateTourProb.evaluate(
+            (int)newPath.size() - 1,
+            MIN_PRIZE,
+            newPath,
+            data.probability,
+            data.prize
+        );
+
+        // Se a probabilidade ainda satisfaz MIN_PROB, podemos considerar a remoção
+        if (prob >= MIN_PROB) {
+            // guarda melhor remoção encontrada (maior redução de custo)
+            bestRemoveIndex = i;
+            bestNewCost = newCost;
+            bestNewPrize = newPrize;
+            // Observação: podemos parar no primeiro (first-improvement) ou buscar o melhor (best-improvement)
+            // Aqui escolhi best-improvement: continuamos a busca por remoção ainda melhor.
+        }
+    }
+
+    // Se encontramos uma remoção válida que melhora custo, executa-a
+    if (bestRemoveIndex != -1) {
+        int removedNode = customers.feasibleTour.path[bestRemoveIndex];
+        // remove do caminho
+        customers.feasibleTour.path.erase(customers.feasibleTour.path.begin() + bestRemoveIndex);
+        // atualiza custo e prêmio
+        customers.feasibleTour.cost = bestNewCost;
+        customers.feasibleTour.prize = bestNewPrize;
+        // adiciona o nó removido à lista de não visitados
+        customers.notVisited.push_back(removedNode);
+
+        // segurança: se custo negativo, aborta (seguindo padrão do código)
+        if (customers.feasibleTour.cost < 0) {
+            std::cout << "removeVisitedIfSafe - Custo negativo encontrado apos remocao, abortando..." << std::endl;
+            exit(1);
+        }
+
+        return true;
+    }
+
+    return false;
 }
 
 /* Move um cliente de não visitado para o caminho viável */
@@ -91,7 +187,7 @@ bool IteratedLocalSearch::shiftOneZero(InstanceData &data, Customers &customers)
             double a = this->objcFunc(newCost);
             double b = this->objcFunc(bestCost);
 
-            if( newCost <= data.deadline  && a < b ) {
+            if( a < b ) {
                 bestPositionIndex = i;
                 bestNotVisitedIndex = j;
                 bestCost = newCost;
@@ -140,7 +236,7 @@ bool IteratedLocalSearch::swapOneOne(InstanceData &data, Customers &customers) {
             double newCost = customers.feasibleTour.cost - dellEdges + newEdges;
             double newPrize = customers.feasibleTour.prize + data.prize[addedNode] - data.prize[deletedNode];
 
-            if( newCost <= data.deadline  && this->objcFunc(newCost) < this->objcFunc(bestCost)) {
+            if( this->objcFunc(newCost) < this->objcFunc(bestCost)) {
                 bestPositionIndex = i;
                 bestNotVisitedIndex = j;
                 bestCost = newCost;
@@ -192,7 +288,7 @@ bool IteratedLocalSearch::reinsertion(InstanceData &data, Customers &customers) 
                 
                 double newCost = customers.feasibleTour.cost - dellEdges + newEdges;
 
-                if( /* newCost <= data.deadline &&  */ (newCost <= bestCost)) {
+                if( (newCost <= bestCost)) {
                     bestRemovedIndex = i;
                     bestInsertionIndex = j;
                     bestCost = newCost;
@@ -260,7 +356,7 @@ bool IteratedLocalSearch::twoOpt(InstanceData &data, Customers &customers) {
 
 
 void  IteratedLocalSearch::localSearch(InstanceData &data, Customers &customers) {
-    int r = 4, k = 1;
+    int r = 5, k = 1;
 
     while(k <= r) {
         bool hasImprovement = false;
@@ -268,7 +364,6 @@ void  IteratedLocalSearch::localSearch(InstanceData &data, Customers &customers)
         switch(k) {
             case 1:
                 hasImprovement = this->shiftOneZero(data, customers);
-                
                 break;
             case 2:
                 hasImprovement = this->swapOneOne(data, customers);
@@ -278,7 +373,10 @@ void  IteratedLocalSearch::localSearch(InstanceData &data, Customers &customers)
                 break;
             case 4: 
                 hasImprovement = this->twoOpt(data, customers);
-            break;
+                break;
+            case 5:
+                hasImprovement = this->removeVisitedIfSafe(data, customers);
+                break;
         }
 
         k = hasImprovement ? 1 : k + 1;
@@ -324,17 +422,7 @@ Customers IteratedLocalSearch::doubleBridge(InstanceData &data, Customers &custo
 
     customers.feasibleTour.path = newTour;
     customers.feasibleTour.cost = newCost;
-
-    // Verificar deadline e remove clientes se necessário
-    while (customers.feasibleTour.cost + data.cost[customers.feasibleTour.path.back()][0] > data.deadline && customers.feasibleTour.path.size() > 2) {
-        int last = customers.feasibleTour.path.back();
-        customers.feasibleTour.path.pop_back();
-        customers.feasibleTour.cost -= data.cost[customers.feasibleTour.path.back()][last];
-        if(last != 0) {
-            customers.feasibleTour.prize -= data.prize[last];
-            customers.notVisited.push_back(last);
-        }
-    }
+    
 
     customers.feasibleTour.cost += data.cost[customers.feasibleTour.path.back()][0];
     customers.feasibleTour.path.push_back(0); 
