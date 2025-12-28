@@ -73,8 +73,8 @@ InstanceData readFile(string path) {
                 double prob;
 
                 file >> id >> prize >> prob;
-                data.probability[i] = prob;
-                data.prize[i] = prize;
+                data.probability[id-1] = prob;  // Use id-1 for 0-indexed array
+                data.prize[id-1] = prize;       // Use id-1 for 0-indexed array
             }
         }
     }

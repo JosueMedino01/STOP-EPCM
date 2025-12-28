@@ -5,3 +5,11 @@ run:
 
 bug: 
 	g++ -g app.cpp iterated-local-search/IteratedLocalSearch.cpp greedy-algorithm/GreedyAlgorithm.cpp   evaluate-tour-probability/EvaluateTourProbability.cpp -o app.out
+
+refactor: 
+	g++ src/app.cpp -o bin/app.out
+	./bin/app.out
+
+unit:
+
+e2e: 

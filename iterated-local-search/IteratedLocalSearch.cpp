@@ -23,8 +23,10 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
 {
     /* Melhor Solução - Solução Inicial*/
     GreedyAlgorithm greedy; 
-    this->bestSolution = greedy.kNeighborRandomInsertion(data, K, C, this->MIN_PRIZE, this->MIN_PROB); this->printData(bestSolution.feasibleTour, bestSolution.notVisited, "SOLUCAO INICIAL", data);
+    this->bestSolution = greedy.kNeighborRandomInsertion(data, K, C, this->MIN_PRIZE, this->MIN_PROB); 
+    this->printData(bestSolution.feasibleTour, bestSolution.notVisited, "Inicial solution", data);
     this->localSearch(data, bestSolution); 
+    this->printData(bestSolution.feasibleTour, bestSolution.notVisited, "Inicial solution after improvement", data);
 
     auto start = std::chrono::steady_clock::now();
     int i = 0;
@@ -33,7 +35,7 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
         i++;
         // out << "Iteracao: " << i << endl; 
         /* Pertubacao */
-        Customers disturbed =  doubleBridge(data, bestSolution);  printData(disturbed.feasibleTour, disturbed.notVisited, "Perturbacao", data);
+        Customers disturbed =  doubleBridge(data, bestSolution);  //printData(disturbed.feasibleTour, disturbed.notVisited, "Pertubed", data);
         
         if(disturbed.feasibleTour.cost < 0) {
             cout << "doubleBridge - Custo negativo encontrado, abortando..." << endl;
@@ -41,7 +43,7 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
         }
 
         /* Busca Local */
-        this->localSearch(data, disturbed);  printData(disturbed.feasibleTour, disturbed.notVisited, "Local search", data);
+        this->localSearch(data, disturbed);  //printData(disturbed.feasibleTour, disturbed.notVisited, "Local search", data);
         
 
         double prob = this->evaluateTourProb.evaluate(
@@ -66,6 +68,7 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
         /* Criterio de Aceitação */
         if ( prob > MIN_PROB && this->objcFunc(disturbed.feasibleTour.cost) < this->objcFunc(bestSolution.feasibleTour.cost)) {
             this->bestSolution = disturbed;
+            this->printData(disturbed.feasibleTour, disturbed.notVisited, "Accept criterial", data);
             cout << "HOUVE MELHORA NA ITERACAO "<< i <<endl;
             i = 0;
         }
@@ -74,7 +77,7 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
         
     }
     
-    this->printData(bestSolution.feasibleTour, bestSolution.notVisited, "Solucao Final", data);
+    this->printData(bestSolution.feasibleTour, bestSolution.notVisited, "Final Solution", data);
 }
 
 double IteratedLocalSearch::objcFunc(double sumCost) {
@@ -431,7 +434,7 @@ Customers IteratedLocalSearch::doubleBridge(InstanceData &data, Customers &custo
 }
 
 void IteratedLocalSearch::printData(Tour tour, vector<int> notVisited, string source, InstanceData &data) {
-    ofstream outFile("solution_log.txt", ios::app); // Abre o arquivo em modo append
+    ofstream outFile("teste-logs.txt", ios::app); // Abre o arquivo em modo append
 
     if (!outFile) {
         cerr << "Erro ao abrir o arquivo para escrita!" << endl;
@@ -450,6 +453,18 @@ void IteratedLocalSearch::printData(Tour tour, vector<int> notVisited, string so
 
     outFile << "\nCost: " << tour.cost;
     outFile << "\nPrize: " << tour.prize;
+
+    // Cálculo bruto da soma dos prêmios (somando manualmente pelos nós do tour, ignorando o depósito 0)
+    double brutePrize = 0.0;
+    for (int i = 0; i < tour.path.size(); ++i) {
+        int node = tour.path[i];
+        if (node == 0) continue; // ignora depósito
+        brutePrize += data.prize[node];
+    }
+    outFile << "\nSoma dos prêmios (cálculo bruto): " << brutePrize;
+    outFile << "\nPrize armazenado em tour.prize: " << tour.prize;
+    outFile << "\nDiferença (bruto - tour.prize): " << (brutePrize - tour.prize);
+    outFile << "\n(Esse valor foi obtido por um cálculo bruto para checar divergências.)\n";
 
     // Adicionando informações de probabilidade
     double prob = this->evaluateTourProb.evaluate(
