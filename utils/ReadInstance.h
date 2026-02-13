@@ -28,18 +28,31 @@ InstanceData readFile(string path) {
         istringstream iss(line);
         string key;
         char colon;
-        int value;
 
-        iss >> key >> colon >> value;
+        iss >> key >> colon;
 
         if (key == "DIMENSION") {
+            int value;
+            iss >> value;
             data.size = value;
             data.cost.resize(data.size, vector<double>(data.size, 0));
             data.probability.resize(data.size, 0.0);
             data.prize.resize(data.size, 0);
         }
         else if (key == "TMAX") {
+            int value;
+            iss >> value;
             data.deadline = value;
+        }
+        else if (key == "MIN_PRIZE:") {
+            double value;
+            iss >> value;
+            data.MIN_PRIZE = value;
+        }
+        else if (key == "MIN_PROB:") {
+            double value;
+            iss >> value;
+            data.MIN_PROB = value;
         }
         else if (key == "NODE_COORD_SECTION") {
             vector<pair<int, int>> coords(data.size);

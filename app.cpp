@@ -16,12 +16,17 @@ void readArguments(int argc, char *argv[], string &filename, int &seed,
 int main(int argc, char *argv[]) {
     string filename = "";
     int seed, K, TABU_TENURE, MAX_ITER_TABU, MAX_NOT_IMPROVIMENT;
-    double MIN_PRIZE, MIN_PROB;
+    double MIN_PRIZE = 0.0, MIN_PROB = 0.0;  // Inicializar com 0 para detectar se foram passados
 
     readArguments(argc, argv, filename, seed, K, MIN_PRIZE, MIN_PROB, TABU_TENURE, MAX_ITER_TABU, MAX_NOT_IMPROVIMENT);
 
-    InstanceData data = readFile(filename); 
-    IteratedLocalSearch ils(MAX_NOT_IMPROVIMENT, K, MIN_PRIZE, MIN_PROB, seed, 180);
+    InstanceData data = readFile(filename);
+    
+    // Se MIN_PRIZE ou MIN_PROB não foram passados, usar valores da instância
+    if (MIN_PRIZE == 0.0) MIN_PRIZE = data.MIN_PRIZE;
+    if (MIN_PROB == 0.0) MIN_PROB = data.MIN_PROB;
+    
+    IteratedLocalSearch ils(MAX_NOT_IMPROVIMENT, K, MIN_PRIZE, MIN_PROB, seed, 10);
     ils.run(data, K, MIN_PRIZE);
 
     /* EvaluateTourProbability evaluate;

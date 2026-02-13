@@ -5,6 +5,7 @@
 #include <chrono>
 #include "../greedy-algorithm/GreedyAlgorithm.h"
 #include "../evaluate-tour-probability/EvaluateTourProbability.h"
+#include "../utils/Validation.h"
 
 IteratedLocalSearch::IteratedLocalSearch(int MXI, int K, double MIN_PRIZE, double MIN_PROB, int SEED, int TIME_LIMIT)
 {
@@ -23,8 +24,22 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
 {
     /* Melhor Solução - Solução Inicial*/
     GreedyAlgorithm greedy; 
-    this->bestSolution = greedy.kNeighborRandomInsertion(data, K, C, this->MIN_PRIZE, this->MIN_PROB); this->printData(bestSolution.feasibleTour, bestSolution.notVisited, "SOLUCAO INICIAL", data);
+    this->bestSolution = greedy.kNeighborRandomInsertion(data, K, C, this->MIN_PRIZE, this->MIN_PROB);
+    
+    // ASSERT: Valida solução inicial
+    if (!Validation::assertSolutionIntegrity(bestSolution, data, MIN_PRIZE, "SOLUCAO INICIAL")) {
+        std::cerr << "ERRO: Solução inicial inválida!" << std::endl;
+        exit(1);
+    }
+    
+    this->printData(bestSolution.feasibleTour, bestSolution.notVisited, "SOLUCAO INICIAL", data);
     this->localSearch(data, bestSolution); 
+    
+    // ASSERT: Valida solução após busca local inicial
+    if (!Validation::assertSolutionIntegrity(bestSolution, data, MIN_PRIZE, "APOS BUSCA LOCAL INICIAL")) {
+        std::cerr << "ERRO: Solução após busca local inicial inválida!" << std::endl;
+        exit(1);
+    } 
 
     auto start = std::chrono::steady_clock::now();
     int i = 0;
@@ -33,7 +48,15 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
         i++;
         // out << "Iteracao: " << i << endl; 
         /* Pertubacao */
-        Customers disturbed =  doubleBridge(data, bestSolution);  printData(disturbed.feasibleTour, disturbed.notVisited, "Perturbacao", data);
+        Customers disturbed =  doubleBridge(data, bestSolution);
+        
+        // ASSERT: Valida solução perturbada
+        if (!Validation::assertSolutionIntegrity(disturbed, data, MIN_PRIZE, "APOS PERTURBACAO")) {
+            std::cerr << "ERRO: Solução perturbada inválida!" << std::endl;
+            exit(1);
+        }
+        
+        this->printData(disturbed.feasibleTour, disturbed.notVisited, "Perturbacao", data);
         
         if(disturbed.feasibleTour.cost < 0) {
             cout << "doubleBridge - Custo negativo encontrado, abortando..." << endl;
@@ -41,7 +64,15 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
         }
 
         /* Busca Local */
-        this->localSearch(data, disturbed);  printData(disturbed.feasibleTour, disturbed.notVisited, "Local search", data);
+        this->localSearch(data, disturbed);
+        
+        // ASSERT: Valida solução após busca local
+        if (!Validation::assertSolutionIntegrity(disturbed, data, MIN_PRIZE, "APOS BUSCA LOCAL")) {
+            std::cerr << "ERRO: Solução após busca local inválida!" << std::endl;
+            exit(1);
+        }
+        
+        this->printData(disturbed.feasibleTour, disturbed.notVisited, "Local search", data);
         
 
         double prob = this->evaluateTourProb.evaluate(
@@ -64,14 +95,35 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
         // cout << "Min Prob: " << MIN_PROB << endl;
 
         /* Criterio de Aceitação */
-        if ( prob > MIN_PROB && this->objcFunc(disturbed.feasibleTour.cost) < this->objcFunc(bestSolution.feasibleTour.cost)) {
+        // CORRECAO: Rejeitar se prize < MIN_PRIZE (determinístico)
+        bool prizeConstraintMet = (disturbed.feasibleTour.prize >= MIN_PRIZE);
+        bool probConstraintMet = (prob > MIN_PROB);
+        bool costConstraintMet = this->objcFunc(disturbed.feasibleTour.cost) < this->objcFunc(bestSolution.feasibleTour.cost);
+        
+        if (prizeConstraintMet && probConstraintMet && costConstraintMet) {
+            // NOVO ASSERT: Verifica coerência probabilística ANTES de aceitar
+            Validation::assertProbabilityCoherence(
+                disturbed, data, MIN_PRIZE, MIN_PROB, prob, 
+                "PRE-ACEITACAO: Verificando se solução é coerente"
+            );
+            
             this->bestSolution = disturbed;
+            
+            // ASSERT: Valida atualização da melhor solução
+            if (!Validation::assertSolutionIntegrity(bestSolution, data, MIN_PRIZE, "APOS ACEITAR NOVA MELHOR SOLUCAO")) {
+                std::cerr << "ERRO: Melhor solução inválida após atualização!" << std::endl;
+                exit(1);
+            }
+            
             cout << "HOUVE MELHORA NA ITERACAO "<< i <<endl;
             i = 0;
         }
-
-
-        
+    }
+    
+    // ASSERT: Valida solução final
+    if (!Validation::assertSolutionIntegrity(bestSolution, data, MIN_PRIZE, "SOLUCAO FINAL")) {
+        std::cerr << "ERRO: Solução final inválida!" << std::endl;
+        exit(1);
     }
     
     this->printData(bestSolution.feasibleTour, bestSolution.notVisited, "Solucao Final", data);
@@ -132,8 +184,9 @@ bool IteratedLocalSearch::removeVisitedIfSafe(InstanceData &data, Customers &cus
             data.prize
         );
 
-        // Se a probabilidade ainda satisfaz MIN_PROB, podemos considerar a remoção
-        if (prob >= MIN_PROB) {
+        // Se a probabilidade ainda satisfaz MIN_PROB E o prêmio >= MIN_PRIZE, podemos considerar a remoção
+        // CORREÇÃO: Garantir que a solução satisfaz AMBAS as constraints
+        if (prob >= MIN_PROB && newPrize >= MIN_PRIZE) {
             // guarda melhor remoção encontrada (maior redução de custo)
             bestRemoveIndex = i;
             bestNewCost = newCost;
@@ -153,6 +206,12 @@ bool IteratedLocalSearch::removeVisitedIfSafe(InstanceData &data, Customers &cus
         customers.feasibleTour.prize = bestNewPrize;
         // adiciona o nó removido à lista de não visitados
         customers.notVisited.push_back(removedNode);
+
+        // ASSERT: Valida estado após remoção
+        if (!Validation::assertSolutionIntegrity(customers, data, MIN_PRIZE, "removeVisitedIfSafe")) {
+            std::cerr << "ERRO: Solução inválida após removeVisitedIfSafe!" << std::endl;
+            exit(1);
+        }
 
         // segurança: se custo negativo, aborta (seguindo padrão do código)
         if (customers.feasibleTour.cost < 0) {
@@ -209,6 +268,13 @@ bool IteratedLocalSearch::shiftOneZero(InstanceData &data, Customers &customers)
 
         customers.feasibleTour.cost = bestCost;
         customers.feasibleTour.prize = bestPrize;
+        
+        // ASSERT: Valida estado após inserção
+        if (!Validation::assertSolutionIntegrity(customers, data, MIN_PRIZE, "shiftOneZero")) {
+            std::cerr << "ERRO: Solução inválida após shiftOneZero!" << std::endl;
+            exit(1);
+        }
+        
         return true;
     }
 
@@ -259,6 +325,13 @@ bool IteratedLocalSearch::swapOneOne(InstanceData &data, Customers &customers) {
 
         customers.feasibleTour.cost = bestCost;
         customers.feasibleTour.prize = bestPrize;
+        
+        // ASSERT: Valida estado após swap
+        if (!Validation::assertSolutionIntegrity(customers, data, MIN_PRIZE, "swapOneOne")) {
+            std::cerr << "ERRO: Solução inválida após swapOneOne!" << std::endl;
+            exit(1);
+        }
+        
         return true;
     }
 
@@ -314,6 +387,13 @@ bool IteratedLocalSearch::reinsertion(InstanceData &data, Customers &customers) 
         }
         
         customers.feasibleTour.cost = bestCost;
+        
+        // ASSERT: Valida estado após reinserção
+        if (!Validation::assertSolutionIntegrity(customers, data, MIN_PRIZE, "reinsertion")) {
+            std::cerr << "ERRO: Solução inválida após reinsertion!" << std::endl;
+            exit(1);
+        }
+        
         return true;
     }
 
@@ -348,6 +428,13 @@ bool IteratedLocalSearch::twoOpt(InstanceData &data, Customers &customers) {
     if (bestIndexI != -1 && bestIndexJ != -1) {
         reverse(customers.feasibleTour.path.begin() + bestIndexI, customers.feasibleTour.path.begin() + bestIndexJ+ 1);
         customers.feasibleTour.cost = bestCost;
+        
+        // ASSERT: Valida estado após 2-opt
+        if (!Validation::assertSolutionIntegrity(customers, data, MIN_PRIZE, "twoOpt")) {
+            std::cerr << "ERRO: Solução inválida após twoOpt!" << std::endl;
+            exit(1);
+        }
+        
         return true;
     }
 
@@ -425,7 +512,14 @@ Customers IteratedLocalSearch::doubleBridge(InstanceData &data, Customers &custo
     
 
     customers.feasibleTour.cost += data.cost[customers.feasibleTour.path.back()][0];
-    customers.feasibleTour.path.push_back(0); 
+    customers.feasibleTour.path.push_back(0);
+    
+    // ASSERT: Valida estado após doubleBridge
+    // Nota: Prize não é alterado no doubleBridge, apenas o path é reorganizado
+    if (!Validation::assertSolutionIntegrity({customers.feasibleTour, customers.notVisited}, data, MIN_PRIZE, "doubleBridge")) {
+        std::cerr << "ERRO: Solução inválida após doubleBridge!" << std::endl;
+        exit(1);
+    }
 
     return {customers.feasibleTour, customers.notVisited};
 }

@@ -26,6 +26,8 @@ struct Customers {
 struct InstanceData {
     int size;
     int deadline;
+    double MIN_PRIZE = 0.0;
+    double MIN_PROB = 0.0;
     vector<double> probability;
     vector<double> prize;
     vector<vector<double>> cost;
