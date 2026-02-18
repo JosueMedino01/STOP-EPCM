@@ -534,12 +534,18 @@ void IteratedLocalSearch::printData(Tour tour, vector<int> notVisited, string so
     outFile << "\nOrigem: " << source;
     outFile << "\nTour: ";
     for (int i = 0; i < tour.path.size(); i++) {
-        outFile << tour.path[i] << " ";
+        // CORRECAO: Converter índices 0-indexed para IDs 1-indexed (exceto depot que permanece 0)
+        if (tour.path[i] == 0) {
+            outFile << "0 ";
+        } else {
+            outFile << (tour.path[i] + 1) << " ";  // +1 para converter de índice para ID
+        }
     }
     
     outFile << "\nNot visited: ";
     for (int i = 0; i < notVisited.size(); i++) {
-        outFile << notVisited[i] << " ";
+        // CORRECAO: Converter para IDs 1-indexed
+        outFile << (notVisited[i] + 1) << " ";
     }
 
     outFile << "\nCost: " << tour.cost;
