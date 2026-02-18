@@ -10,15 +10,15 @@
 void printData(Tour tour, vector<int> notVisited);
 
 void readArguments(int argc, char *argv[], string &filename, int &seed, 
-    int &K, double &MIN_PRIZE, double &MIN_PROB, int &TABU_TENURE, int &MAX_ITER_TABU, int &MAX_NOT_IMPROVIMENT
+    int &K, double &MIN_PRIZE, double &MIN_PROB, int &TABU_TENURE, int &MAX_ITER_TABU, int &MAX_NOT_IMPROVIMENT, int &TMAX
 );
 
 int main(int argc, char *argv[]) {
     string filename = "";
-    int seed, K, TABU_TENURE, MAX_ITER_TABU, MAX_NOT_IMPROVIMENT;
+    int seed, K, TABU_TENURE, MAX_ITER_TABU, MAX_NOT_IMPROVIMENT, TMAX = 0;
     double MIN_PRIZE = 0.0, MIN_PROB = 0.0;  // Inicializar com 0 para detectar se foram passados
 
-    readArguments(argc, argv, filename, seed, K, MIN_PRIZE, MIN_PROB, TABU_TENURE, MAX_ITER_TABU, MAX_NOT_IMPROVIMENT);
+    readArguments(argc, argv, filename, seed, K, MIN_PRIZE, MIN_PROB, TABU_TENURE, MAX_ITER_TABU, MAX_NOT_IMPROVIMENT, TMAX);
 
     InstanceData data = readFile(filename);
     
@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
     if (MIN_PRIZE == 0.0) MIN_PRIZE = data.MIN_PRIZE;
     if (MIN_PROB == 0.0) MIN_PROB = data.MIN_PROB;
     
-    IteratedLocalSearch ils(MAX_NOT_IMPROVIMENT, K, MIN_PRIZE, MIN_PROB, seed, 10);
+    IteratedLocalSearch ils(MAX_NOT_IMPROVIMENT, K, MIN_PRIZE, MIN_PROB, seed, TMAX);
     ils.run(data, K, MIN_PRIZE);
 
     /* EvaluateTourProbability evaluate;
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
 
 
 void readArguments(int argc, char *argv[], string &filename, int &seed, 
-    int &K, double &MIN_PRIZE, double &MIN_PROB, int &TABU_TENURE, int &MAX_ITER_TABU, int &MAX_NOT_IMPROVIMENT) 
+    int &K, double &MIN_PRIZE, double &MIN_PROB, int &TABU_TENURE, int &MAX_ITER_TABU, int &MAX_NOT_IMPROVIMENT, int &TMAX) 
 {
     for (int i = 0; i < argc; i++)
     {
@@ -101,6 +101,10 @@ void readArguments(int argc, char *argv[], string &filename, int &seed,
         else if (!strcmp(argv[i], "-K"))
         {
             K = atoi(argv[i + 1]);
+        }
+        else if (!strcmp(argv[i], "-TMAX"))
+        {
+            TMAX = atoi(argv[i + 1]);
         }
         else if (!strcmp(argv[i], "-T"))
         {
