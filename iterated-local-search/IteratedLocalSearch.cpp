@@ -46,9 +46,9 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
     while (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start).count() < TIME_LIMIT)
     {
         i++;
-        // out << "Iteracao: " << i << endl; 
-        /* Pertubacao */
-        Customers disturbed =  doubleBridge(data, bestSolution);
+        // out << "Iteracao: " << i << endl; 
+        /* Pertubacao com Diversificacao */
+        Customers disturbed = enhancedPerturbation(data, bestSolution);
         
         // ASSERT: Valida solução perturbada
         if (!Validation::assertSolutionIntegrity(disturbed, data, MIN_PRIZE, "APOS PERTURBACAO")) {
@@ -441,6 +441,77 @@ bool IteratedLocalSearch::twoOpt(InstanceData &data, Customers &customers) {
     return false;
 }
 
+
+void IteratedLocalSearch::updateTourCostAndPrize(InstanceData &data, Customers &customers) {
+    double cost = 0;
+    double prize = 0;
+    
+    for (int i = 1; i < customers.feasibleTour.path.size(); i++) {
+        cost += data.cost[customers.feasibleTour.path[i-1]][customers.feasibleTour.path[i]];
+    }
+    
+    for (int i = 1; i < customers.feasibleTour.path.size() - 1; i++) {
+        prize += data.prize[customers.feasibleTour.path[i]];
+    }
+    
+    customers.feasibleTour.cost = cost;
+    customers.feasibleTour.prize = prize;
+}
+
+int IteratedLocalSearch::findBestInsertionPosition(InstanceData &data, Customers &customers, int nodeToInsert) {
+    int n = customers.feasibleTour.path.size();
+    int bestPos = 1;
+    double bestCostIncrease = 1e9;
+    
+    // Testar inserção em cada posição
+    for (int i = 1; i <= n - 1; i++) {
+        double removedEdge = data.cost[customers.feasibleTour.path[i-1]][customers.feasibleTour.path[i]];
+        double newEdges = data.cost[customers.feasibleTour.path[i-1]][nodeToInsert] 
+                        + data.cost[nodeToInsert][customers.feasibleTour.path[i]];
+        double costIncrease = newEdges - removedEdge;
+        
+        if (costIncrease < bestCostIncrease) {
+            bestCostIncrease = costIncrease;
+            bestPos = i;
+        }
+    }
+    
+    return bestPos;
+}
+
+Customers IteratedLocalSearch::enhancedPerturbation(InstanceData &data, Customers &customersInput) {
+    Customers perturbed = doubleBridge(data, customersInput);
+    
+    // Se há vértices não visitados, inserir alguns aleatoriamente para diversificar
+    if (!perturbed.notVisited.empty()) {
+        // Número aleatório de inserções: 1 a min(3, número de não visitados)
+        int maxInsertions = min(3, (int)perturbed.notVisited.size());
+        int numInsertions = 1 + rand() % maxInsertions;
+        
+        for (int k = 0; k < numInsertions && !perturbed.notVisited.empty(); k++) {
+            // Escolher aleatoriamente um vértice não visitado
+            int randIdx = rand() % perturbed.notVisited.size();
+            int nodeToInsert = perturbed.notVisited[randIdx];
+            
+            // Encontrar melhor posição para inserir
+            int bestPos = findBestInsertionPosition(data, perturbed, nodeToInsert);
+            
+            // Inserir no caminho
+            perturbed.feasibleTour.path.insert(
+                perturbed.feasibleTour.path.begin() + bestPos, 
+                nodeToInsert
+            );
+            
+            // Remover dos não visitados
+            perturbed.notVisited.erase(perturbed.notVisited.begin() + randIdx);
+        }
+        
+        // Recalcular custo e prêmio após inserções
+        updateTourCostAndPrize(data, perturbed);
+    }
+    
+    return perturbed;
+}
 
 void  IteratedLocalSearch::localSearch(InstanceData &data, Customers &customers) {
     int r = 5, k = 1;

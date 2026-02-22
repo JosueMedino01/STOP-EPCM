@@ -23,6 +23,9 @@ class IteratedLocalSearch
 
         void localSearch(InstanceData &data, Customers &customers);
         Customers doubleBridge(InstanceData &data, Customers &customers);
+        Customers enhancedPerturbation(InstanceData &data, Customers &customers);
+        int findBestInsertionPosition(InstanceData &data, Customers &customers, int nodeToInsert);
+        void updateTourCostAndPrize(InstanceData &data, Customers &customers);
     public:
         Customers bestSolution; 
         IteratedLocalSearch(int MXI, int K, double MIN_PRIZE, double MIN_PROB, int SEED, int TIME_LIMIT);
