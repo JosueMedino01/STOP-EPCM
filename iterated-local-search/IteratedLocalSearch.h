@@ -11,6 +11,7 @@ class IteratedLocalSearch
     private:
         int MAX_NOT_IMPROVIMENT, K, SEED, TIME_LIMIT; 
         double MIN_PRIZE, MIN_PROB;
+        string logFilename;
         double objcFunc(double sumCost);
         void printData(Tour tour, vector<int> notVisited, string source, InstanceData &data);
         EvaluateTourProbability evaluateTourProb;
@@ -28,7 +29,7 @@ class IteratedLocalSearch
         void updateTourCostAndPrize(InstanceData &data, Customers &customers);
     public:
         Customers bestSolution; 
-        IteratedLocalSearch(int MXI, int K, double MIN_PRIZE, double MIN_PROB, int SEED, int TIME_LIMIT);
+        IteratedLocalSearch(int MXI, int K, double MIN_PRIZE, double MIN_PROB, int SEED, int TIME_LIMIT, string instanceFilename = "");
         
         void run(InstanceData data, int K, double C);
 };

@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
     if (MIN_PRIZE == 0.0) MIN_PRIZE = data.MIN_PRIZE;
     if (MIN_PROB == 0.0) MIN_PROB = data.MIN_PROB;
     
-    IteratedLocalSearch ils(MAX_NOT_IMPROVIMENT, K, MIN_PRIZE, MIN_PROB, seed, TMAX);
+    IteratedLocalSearch ils(MAX_NOT_IMPROVIMENT, K, MIN_PRIZE, MIN_PROB, seed, TMAX, filename);
     ils.run(data, K, MIN_PRIZE);
 
     /* EvaluateTourProbability evaluate;

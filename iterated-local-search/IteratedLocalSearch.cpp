@@ -3,11 +3,14 @@
 #include <fstream>
 #include <algorithm>
 #include <chrono>
+#include <ctime>
+#include <sstream>
+#include <sys/stat.h>
 #include "../greedy-algorithm/GreedyAlgorithm.h"
 #include "../evaluate-tour-probability/EvaluateTourProbability.h"
 #include "../utils/Validation.h"
 
-IteratedLocalSearch::IteratedLocalSearch(int MXI, int K, double MIN_PRIZE, double MIN_PROB, int SEED, int TIME_LIMIT)
+IteratedLocalSearch::IteratedLocalSearch(int MXI, int K, double MIN_PRIZE, double MIN_PROB, int SEED, int TIME_LIMIT, string instanceFilename)
 {
     this->MAX_NOT_IMPROVIMENT = MXI;
     this->K = K;
@@ -17,6 +20,32 @@ IteratedLocalSearch::IteratedLocalSearch(int MXI, int K, double MIN_PRIZE, doubl
     this->TIME_LIMIT = TIME_LIMIT;
     srand(SEED); 
     this->evaluateTourProb = EvaluateTourProbability();
+    
+    // Gerar nome do arquivo de log com data, hora e nome da instância
+    auto now = std::chrono::system_clock::now();
+    auto time = std::chrono::system_clock::to_time_t(now);
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+    
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&time), "%Y%m%d_%H%M%S");
+    string timestamp = ss.str();
+    
+    // Extrair apenas o nome do arquivo (sem caminho e extensão)
+    string instanceName = instanceFilename;
+    size_t lastSlash = instanceName.find_last_of("/\\");
+    if (lastSlash != string::npos) {
+        instanceName = instanceName.substr(lastSlash + 1);
+    }
+    size_t dotPos = instanceName.find_last_of(".");
+    if (dotPos != string::npos) {
+        instanceName = instanceName.substr(0, dotPos);
+    }
+    
+    // Criar diretório logs se não existir
+    mkdir("logs", 0755);
+    
+    // Montar o nome do arquivo
+    this->logFilename = "logs/solution_log_" + timestamp + "_" + instanceName + ".txt";
 }
 
 
@@ -596,7 +625,7 @@ Customers IteratedLocalSearch::doubleBridge(InstanceData &data, Customers &custo
 }
 
 void IteratedLocalSearch::printData(Tour tour, vector<int> notVisited, string source, InstanceData &data) {
-    ofstream outFile("solution_log.txt", ios::app); // Abre o arquivo em modo append
+    ofstream outFile(this->logFilename, ios::app); // Abre o arquivo em modo append
 
     if (!outFile) {
         cerr << "Erro ao abrir o arquivo para escrita!" << endl;
