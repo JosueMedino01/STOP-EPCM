@@ -1,6 +1,6 @@
 run: 
 	g++ app.cpp iterated-local-search/IteratedLocalSearch.cpp greedy-algorithm/GreedyAlgorithm.cpp   evaluate-tour-probability/EvaluateTourProbability.cpp -o app.out
-	time ./app.out -f Artificial_POP_Instance_03.txt -MIN_PRIZE 2000 -MIN_PROB 0.6 -K 2 -T 10 -maxNotImproviment 3000 -seed 13 -TMAX 1800
+	time ./app.out -f Artificial_POP_Instance_01.dat -MIN_PRIZE 2000 -MIN_PROB 0.6 -K 2 -T 10 -maxNotImproviment 3000 -seed 13 -TMAX 10
 	rm -f *.o app.out
 
 bug: 
