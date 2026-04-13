@@ -62,7 +62,19 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
     }
     
     this->printData(bestSolution.feasibleTour, bestSolution.notVisited, "SOLUCAO INICIAL", data);
+    
+    // Guardar a solução inicial ANTES do VND
+    Customers bestSolutionBackup = bestSolution;
+    
     this->localSearch(data, bestSolution); 
+    
+    // IMPORTANTE: Se o VND piorou a solução (reduziu prêmio abaixo de MIN_PRIZE),
+    // restaurar a solução inicial
+    if (bestSolution.feasibleTour.prize < this->MIN_PRIZE && 
+        bestSolutionBackup.feasibleTour.prize >= this->MIN_PRIZE) {
+        cout << "Restaurando solucao inicial: VND violou MIN_PRIZE" << endl;
+        bestSolution = bestSolutionBackup;
+    } 
     
     // ASSERT: Valida solução após busca local inicial
     if (!Validation::assertSolutionIntegrity(bestSolution, data, MIN_PRIZE, "APOS BUSCA LOCAL INICIAL")) {
@@ -196,6 +208,12 @@ bool IteratedLocalSearch::removeVisitedIfSafe(InstanceData &data, Customers &cus
             exit(1);
         }
 
+        // IMPORTANTE: Não remover se deixar o prêmio abaixo do mínimo
+        // Isso previne que o VND remova vértices acumulativamente abaixo do limite
+        if (newPrize < MIN_PRIZE) {
+            continue;
+        }
+
         // Monta o novo path (removido o nó i) para avaliar probabilidade
         std::vector<int> newPath;
         newPath.reserve(n - 1);
@@ -214,7 +232,6 @@ bool IteratedLocalSearch::removeVisitedIfSafe(InstanceData &data, Customers &cus
         );
 
         // Se a probabilidade ainda satisfaz MIN_PROB E o prêmio >= MIN_PRIZE, podemos considerar a remoção
-        // CORREÇÃO: Garantir que a solução satisfaz AMBAS as constraints
         if (prob >= MIN_PROB && newPrize >= MIN_PRIZE) {
             // guarda melhor remoção encontrada (maior redução de custo)
             bestRemoveIndex = i;
@@ -634,18 +651,15 @@ void IteratedLocalSearch::printData(Tour tour, vector<int> notVisited, string so
     outFile << "\nOrigem: " << source;
     outFile << "\nTour: ";
     for (int i = 0; i < tour.path.size(); i++) {
-        // CORRECAO: Converter índices 0-indexed para IDs 1-indexed (exceto depot que permanece 0)
-        if (tour.path[i] == 0) {
-            outFile << "0 ";
-        } else {
-            outFile << (tour.path[i] + 1) << " ";  // +1 para converter de índice para ID
-        }
+    // Internamente e nos resultados que você está usando, os nós são 0-indexed.
+    // Portanto NÃO devemos aplicar +1 aqui. O "52" que apareceu no log é só
+    // índice 51 sendo impresso como 52.
+    outFile << tour.path[i] << " ";
     }
     
     outFile << "\nNot visited: ";
     for (int i = 0; i < notVisited.size(); i++) {
-        // CORRECAO: Converter para IDs 1-indexed
-        outFile << (notVisited[i] + 1) << " ";
+    outFile << notVisited[i] << " ";
     }
 
     outFile << "\nCost: " << tour.cost;

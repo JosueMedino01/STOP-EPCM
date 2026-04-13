@@ -9,12 +9,13 @@
         "type": "cppdbg",
         "request": "launch",
         "program": "${workspaceFolder}/app.out",
-        "args": ["-f", "./instancias/experiments/instances/att48FSTCII_q2_g1_p1.pop", "-C", "0.001", "-K", "2", "-T", "50", "-maxNotImproviment", "100", "-maxIterTabu", "500", "-seed", "13"],
-        "stopAtEntry": true,
-        "cwd": "${fileDirname}",
+        "args": ["-f", "Artificial_POP_Instance_04.dat", "-MIN_PRIZE", "3000", "-MIN_PROB", "0.5", "-K", "2", "-T", "10", "-maxNotImproviment", "3000", "-seed", "13", "-TMAX", "10"],
+        "stopAtEntry": false,
+        "cwd": "${workspaceFolder}",
+        "preLaunchTask": "build_debug",
         "environment": [],
         "externalConsole": false,
-        "MIMode": "gdb",
+        "MIMode": "lldb",
         "setupCommands": [
             {
                 "description": "Habilitar a reformatação automática para gdb",

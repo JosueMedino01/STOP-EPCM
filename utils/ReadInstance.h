@@ -60,7 +60,7 @@ InstanceData readFile(string path) {
             for (int i = 0; i < data.size; i++) {
                 int id, x, y;
                 file >> id >> x >> y;
-                coords[i] = {x, y};
+                coords[id - 1] = {x, y};
             }
 
             for (int i = 0; i < data.size; i++) {
