@@ -19,7 +19,6 @@ IteratedLocalSearch::IteratedLocalSearch(int MXI, int K, double MIN_PRIZE, doubl
     this->SEED = SEED;
     this->TIME_LIMIT = TIME_LIMIT;
     srand(SEED); 
-    this->evaluateTourProb = EvaluateTourProbability();
     
     // Gerar nome do arquivo de log com data, hora e nome da instância
     auto now = std::chrono::system_clock::now();
@@ -116,7 +115,7 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
         this->printData(disturbed.feasibleTour, disturbed.notVisited, "Local search", data);
         
 
-        double prob = this->evaluateTourProb.evaluate(
+        double prob = EvaluateTourProbability().evaluate(
             disturbed.feasibleTour.path.size() - 1, 
             MIN_PRIZE, 
             disturbed.feasibleTour.path, 
@@ -124,24 +123,11 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
             data.prize
         );
 
-        double bestProb = this->evaluateTourProb.evaluate(
-            this->bestSolution.feasibleTour.path.size() - 1, 
-            MIN_PRIZE, 
-            this->bestSolution.feasibleTour.path, 
-            data.probability, 
-            data.prize
-        );
-
-        // cout << "Probabilidade: " << prob << endl;
-        // cout << "Min Prob: " << MIN_PROB << endl;
-
         /* Criterio de Aceitação */
-        // CORRECAO: Rejeitar se prize < MIN_PRIZE (determinístico)
-        bool prizeConstraintMet = (disturbed.feasibleTour.prize >= MIN_PRIZE);
         bool probConstraintMet = (prob > MIN_PROB);
         bool costConstraintMet = this->objcFunc(disturbed.feasibleTour.cost) < this->objcFunc(bestSolution.feasibleTour.cost);
         
-        if (prizeConstraintMet && probConstraintMet && costConstraintMet) {
+        if (probConstraintMet && costConstraintMet) {
             // NOVO ASSERT: Verifica coerência probabilística ANTES de aceitar
             Validation::assertProbabilityCoherence(
                 disturbed, data, MIN_PRIZE, MIN_PROB, prob, 
@@ -223,7 +209,7 @@ bool IteratedLocalSearch::removeVisitedIfSafe(InstanceData &data, Customers &cus
         }
 
         // A função evaluate espera path.size() - 1 como primeiro parâmetro (nó de retorno ao depósito)
-        double prob = this->evaluateTourProb.evaluate(
+        double prob = EvaluateTourProbability().evaluate(
             (int)newPath.size() - 1,
             MIN_PRIZE,
             newPath,
@@ -666,7 +652,7 @@ void IteratedLocalSearch::printData(Tour tour, vector<int> notVisited, string so
     outFile << "\nPrize: " << tour.prize;
 
     // Adicionando informações de probabilidade
-    double prob = this->evaluateTourProb.evaluate(
+    double prob = EvaluateTourProbability().evaluate(
         tour.path.size() - 1, 
         MIN_PRIZE, 
         tour.path, 

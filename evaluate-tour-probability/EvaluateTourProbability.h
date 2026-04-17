@@ -8,7 +8,7 @@
 class EvaluateTourProbability
 {
 public:
-    double evaluate(int i, double Pmin, const vector<int> &path, const vector<double> &probabilities, const vector<double> &prizes);
+    double evaluate(int i, int Pmin, const vector<int> &path, const vector<double> &probabilities, const vector<double> &prizes);
     EvaluateTourProbability();
 private:
     map<pair<int,int>, double> hashMap;

@@ -11,23 +11,18 @@ double GreedyAlgorithm::costBenefit (InstanceData data, int i, int j, double C) 
 Customers GreedyAlgorithm::kNeighborRandomInsertion(InstanceData data, int K, double C, double minPrize, double minProb) {
     int n = data.size;
 
-    EvaluateTourProbability evaluateTourProb = EvaluateTourProbability();
     Tour feasibleTour; feasibleTour.path.push_back(0); feasibleTour.prize = 0;
     vector<bool> visited(n, false); visited[0] = true;
 
     while (feasibleTour.path.size() < n)
     {
-        double prob = evaluateTourProb.evaluate(
+        double prob = EvaluateTourProbability().evaluate(
             feasibleTour.path.size(), 
             minPrize, 
             feasibleTour.path, 
             data.probability, 
             data.prize
         );
-
-        //if( prob >= minProb) {
-        //    break;
-        //}
         
         int last = feasibleTour.path.back();  
         vector<Candidate> candidateList;  

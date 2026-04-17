@@ -7,7 +7,7 @@ EvaluateTourProbability::EvaluateTourProbability() {
     this->hashMap = map<pair<int,int>, double>();
 }
 
-double EvaluateTourProbability::evaluate(int i, double Pmin, const vector<int> &path, 
+double EvaluateTourProbability::evaluate(int i, int Pmin, const vector<int> &path, 
     const vector<double> &probabilities, const vector<double> &prizes) 
 {
     if (Pmin <= 0) 

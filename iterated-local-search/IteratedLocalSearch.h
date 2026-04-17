@@ -14,7 +14,6 @@ class IteratedLocalSearch
         string logFilename;
         double objcFunc(double sumCost);
         void printData(Tour tour, vector<int> notVisited, string source, InstanceData &data);
-        EvaluateTourProbability evaluateTourProb;
 
         bool shiftOneZero(InstanceData &data, Customers &customers);
         bool swapOneOne(InstanceData &data, Customers &customers);
