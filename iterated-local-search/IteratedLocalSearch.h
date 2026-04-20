@@ -28,7 +28,7 @@ class IteratedLocalSearch
         void updateTourCostAndPrize(InstanceData &data, Customers &customers);
     public:
         Customers bestSolution; 
-        IteratedLocalSearch(int MXI, int K, double MIN_PRIZE, double MIN_PROB, int SEED, int TIME_LIMIT, string instanceFilename = "");
+        IteratedLocalSearch(int MXI, int K, double MIN_PRIZE, double MIN_PROB, int SEED, int TIME_LIMIT, string instanceFilename = "", string output = "");
         
         void run(InstanceData data, int K, double C);
 };

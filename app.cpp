@@ -10,23 +10,25 @@
 void printData(Tour tour, vector<int> notVisited);
 
 void readArguments(int argc, char *argv[], string &filename, int &seed, 
-    int &K, double &MIN_PRIZE, double &MIN_PROB, int &TABU_TENURE, int &MAX_ITER_TABU, int &MAX_NOT_IMPROVIMENT, int &TMAX
+    int &K, double &MIN_PRIZE, double &MIN_PROB, int &TABU_TENURE, int &MAX_ITER_TABU, int &MAX_NOT_IMPROVIMENT, int &TMAX, string &output
 );
 
 int main(int argc, char *argv[]) {
-    string filename = "";
+    string filename = "", output = "";
     int seed, K, TABU_TENURE, MAX_ITER_TABU, MAX_NOT_IMPROVIMENT, TMAX = 0;
-    double MIN_PRIZE = 0.0, MIN_PROB = 0.0;  // Inicializar com 0 para detectar se foram passados
-
-    readArguments(argc, argv, filename, seed, K, MIN_PRIZE, MIN_PROB, TABU_TENURE, MAX_ITER_TABU, MAX_NOT_IMPROVIMENT, TMAX);
+    double MIN_PRIZE = -1;
+    double MIN_PROB = -1.0;  
+    
+    readArguments(argc, argv, filename, seed, K, MIN_PRIZE, MIN_PROB, TABU_TENURE, MAX_ITER_TABU, MAX_NOT_IMPROVIMENT, TMAX, output);
 
     InstanceData data = readFile(filename);
     
-    // Se MIN_PRIZE ou MIN_PROB não foram passados, usar valores da instância
-    if (MIN_PRIZE == 0.0) MIN_PRIZE = data.MIN_PRIZE;
-    if (MIN_PROB == 0.0) MIN_PROB = data.MIN_PROB;
     
-    IteratedLocalSearch ils(MAX_NOT_IMPROVIMENT, K, MIN_PRIZE, MIN_PROB, seed, TMAX, filename);
+    if (MIN_PRIZE < 0) MIN_PRIZE = data.MIN_PRIZE;
+    if (MIN_PROB < 0) MIN_PROB = data.MIN_PROB;
+
+    
+    IteratedLocalSearch ils(MAX_NOT_IMPROVIMENT, K, MIN_PRIZE, MIN_PROB, seed, TMAX, filename, output);
     ils.run(data, K, MIN_PRIZE);
 
     /* EvaluateTourProbability evaluate;
@@ -82,7 +84,7 @@ int main(int argc, char *argv[]) {
 
 
 void readArguments(int argc, char *argv[], string &filename, int &seed, 
-    int &K, double &MIN_PRIZE, double &MIN_PROB, int &TABU_TENURE, int &MAX_ITER_TABU, int &MAX_NOT_IMPROVIMENT, int &TMAX) 
+    int &K, double &MIN_PRIZE, double &MIN_PROB, int &TABU_TENURE, int &MAX_ITER_TABU, int &MAX_NOT_IMPROVIMENT, int &TMAX, string &output) 
 {
     for (int i = 0; i < argc; i++)
     {
@@ -117,10 +119,13 @@ void readArguments(int argc, char *argv[], string &filename, int &seed,
         else if (!strcmp(argv[i], "-maxNotImproviment"))
         {
             MAX_NOT_IMPROVIMENT = atoi(argv[i + 1]);
-        } else if (!strcmp(argv[i], "-seed")) {
+        } 
+        else if (!strcmp(argv[i], "-seed")) {
             seed = atoi(argv[i + 1]);
         }
-        
+        else if (!strcmp(argv[i], "-output")) {
+            output = argv[i + 1];
+        }
     }
 
 };

@@ -20,7 +20,7 @@ InstanceData readFile(string path) {
     string line;
 
     if (!file.is_open()) {
-        cerr << "Erro ao abrir o arquivo." << endl;
+        cerr << "Erro ao abrir o arquivo: " << path << endl;
         return data;
     }
 
@@ -44,12 +44,12 @@ InstanceData readFile(string path) {
             iss >> value;
             data.deadline = value;
         }
-        else if (key == "MIN_PRIZE:") {
+        else if (key == "MIN_PRIZE") {
             double value;
             iss >> value;
             data.MIN_PRIZE = value;
         }
-        else if (key == "MIN_PROB:") {
+        else if (key == "MIN_PROB") {
             double value;
             iss >> value;
             data.MIN_PROB = value;
