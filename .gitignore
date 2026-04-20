@@ -1,3 +1,4 @@
-*.txt
+logs-old
+logs
 *.out
 *.py
