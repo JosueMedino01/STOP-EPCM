@@ -42,8 +42,6 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
     
     this->localSearch(data, bestSolution); 
     
-    // IMPORTANTE: Se o VND piorou a solução (reduziu prêmio abaixo de MIN_PRIZE),
-    // restaurar a solução inicial
     if (bestSolution.feasibleTour.prize < this->MIN_PRIZE && 
         bestSolutionBackup.feasibleTour.prize >= this->MIN_PRIZE) {
         cout << "Restaurando solucao inicial: VND violou MIN_PRIZE" << endl;
