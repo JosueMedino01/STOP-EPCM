@@ -42,9 +42,17 @@ void IteratedLocalSearch::run(InstanceData data, int K, double C)
     
     this->localSearch(data, bestSolution); 
     
-    if (bestSolution.feasibleTour.prize < this->MIN_PRIZE && 
+    double probAfterVND = EvaluateTourProbability().evaluate(
+        bestSolution.feasibleTour.path.size() - 1,
+        MIN_PRIZE,
+        bestSolution.feasibleTour.path,
+        data.probability,
+        data.prize
+    );
+    
+    if ((bestSolution.feasibleTour.prize < this->MIN_PRIZE || probAfterVND < this->MIN_PROB) && 
         bestSolutionBackup.feasibleTour.prize >= this->MIN_PRIZE) {
-        cout << "Restaurando solucao inicial: VND violou MIN_PRIZE" << endl;
+        cout << "Restaurando solucao inicial: VND violou MIN_PRIZE ou MIN_PROB" << endl;
         bestSolution = bestSolutionBackup;
     } 
     
